@@ -32,6 +32,10 @@ export default function BillingApp() {
 
   const t = translations[lang];
 
+  // Show the Hindi product name when Hindi is selected and one was provided.
+  const pname = (p: ProductJSON) =>
+    lang === "hi" && p.nameHi ? p.nameHi : p.name;
+
   // Load the saved language preference once on mount (avoids SSR mismatch).
   useEffect(() => {
     let active = true;
@@ -146,6 +150,7 @@ export default function BillingApp() {
     () =>
       cartItems.map((c) => ({
         name: c.product.name,
+        nameHi: c.product.nameHi,
         unit: c.product.unit,
         unitPrice: c.product.price,
         qty: c.qty,
@@ -281,7 +286,7 @@ export default function BillingApp() {
                     </div>
                   )}
                   <span className="line-clamp-2 text-sm font-medium text-gray-900">
-                    {p.name}
+                    {pname(p)}
                   </span>
                   <span className="text-xs text-gray-500">
                     {p.category} · {t.per} {p.unit}
@@ -320,7 +325,7 @@ export default function BillingApp() {
                   <li key={product._id} className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-gray-900">
-                        {product.name}
+                        {pname(product)}
                       </p>
                       <p className="text-xs text-gray-500">
                         {formatCurrency(product.price)} / {product.unit}

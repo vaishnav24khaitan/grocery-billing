@@ -6,6 +6,7 @@ export type ProductUnit = (typeof PRODUCT_UNITS)[number];
 export interface ProductJSON {
   _id: string;
   name: string;
+  nameHi: string;
   price: number;
   unit: ProductUnit;
   category: string;
@@ -22,6 +23,7 @@ export interface CartItem {
 
 export interface BillLine {
   name: string;
+  nameHi?: string;
   unit: ProductUnit;
   unitPrice: number;
   qty: number;

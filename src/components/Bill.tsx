@@ -219,7 +219,9 @@ export default function Bill({
           <tbody>
             {lines.map((l, i) => (
               <tr key={i} className="border-b border-gray-100">
-                <td className="py-1.5">{l.name}</td>
+                <td className="py-1.5">
+                  {lang === "hi" && l.nameHi ? l.nameHi : l.name}
+                </td>
                 <td className="py-1.5 text-center">
                   {l.qty} {l.unit}
                 </td>

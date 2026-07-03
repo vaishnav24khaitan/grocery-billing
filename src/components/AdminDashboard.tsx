@@ -15,6 +15,7 @@ import StaffManager from "@/components/StaffManager";
 
 const EMPTY_FORM: ProductPayload = {
   name: "",
+  nameHi: "",
   price: 0,
   unit: "pcs",
   category: "General",
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
     setEditingId(p._id);
     setForm({
       name: p.name,
+      nameHi: p.nameHi,
       price: p.price,
       unit: p.unit,
       category: p.category,
@@ -181,6 +183,14 @@ export default function AdminDashboard() {
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="input"
+          />
+        </Field>
+        <Field label="Name (Hindi) — optional">
+          <input
+            value={form.nameHi}
+            onChange={(e) => setForm({ ...form, nameHi: e.target.value })}
+            placeholder="नाम (हिंदी बिल के लिए)"
             className="input"
           />
         </Field>

@@ -7,6 +7,7 @@ export type { ProductUnit, ProductJSON } from "@/lib/types";
 const ProductSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
+    nameHi: { type: String, trim: true, default: "" },
     price: { type: Number, required: true, min: 0 },
     unit: {
       type: String,

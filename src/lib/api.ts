@@ -29,6 +29,7 @@ export async function fetchProducts(params?: {
 
 export type ProductPayload = {
   name: string;
+  nameHi: string;
   price: number;
   unit: string;
   category: string;

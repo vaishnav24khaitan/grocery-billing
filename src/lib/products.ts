@@ -4,6 +4,7 @@ import { PRODUCT_UNITS, type ProductJSON, type ProductUnit } from "@/lib/types";
 export function serializeProduct(doc: {
   _id: unknown;
   name: string;
+  nameHi?: string;
   price: number;
   unit: string;
   category: string;
@@ -15,6 +16,7 @@ export function serializeProduct(doc: {
   return {
     _id: String(doc._id),
     name: doc.name,
+    nameHi: doc.nameHi ?? "",
     price: doc.price,
     unit: doc.unit as ProductUnit,
     category: doc.category,
@@ -27,6 +29,7 @@ export function serializeProduct(doc: {
 
 export interface ProductInput {
   name: string;
+  nameHi: string;
   price: number;
   unit: ProductUnit;
   category: string;
@@ -56,6 +59,12 @@ export function parseProductInput(
     data.name = b.name.trim();
   } else if (!partial) {
     return { error: "name is required" };
+  }
+
+  if (has("nameHi")) {
+    if (typeof b.nameHi !== "string")
+      return { error: "nameHi must be a string" };
+    data.nameHi = b.nameHi.trim();
   }
 
   if (has("price")) {
