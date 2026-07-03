@@ -233,7 +233,6 @@ export default function AdminDashboard() {
                 <th className="px-4 py-2 font-medium">Category</th>
                 <th className="px-4 py-2 font-medium">Price</th>
                 <th className="px-4 py-2 font-medium">Unit</th>
-                <th className="px-4 py-2 font-medium">Stock</th>
                 <th className="px-4 py-2 font-medium">Actions</th>
               </tr>
             </thead>
@@ -248,7 +247,6 @@ export default function AdminDashboard() {
                     {formatCurrency(p.price)}
                   </td>
                   <td className="px-4 py-2 text-gray-600">{p.unit}</td>
-                  <td className="px-4 py-2 text-gray-600">{p.quantity}</td>
                   <td className="px-4 py-2">
                     <div className="flex gap-2">
                       <button
