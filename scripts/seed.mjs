@@ -5,8 +5,12 @@
  *   1. Ensure .env.local has a valid MONGODB_URI
  *   2. npm run seed
  */
-import "dotenv/config";
+import { config } from "dotenv";
 import mongoose from "mongoose";
+
+// Load .env.local (Next.js convention) then fall back to .env
+config({ path: ".env.local" });
+config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
