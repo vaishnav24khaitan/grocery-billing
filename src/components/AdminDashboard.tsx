@@ -6,6 +6,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  translateMissingHindi,
   adminLogout,
   type ProductPayload,
 } from "@/lib/api";
@@ -30,6 +31,8 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"products" | "sales" | "staff">("products");
+  const [translating, setTranslating] = useState(false);
+  const [translateMsg, setTranslateMsg] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +109,27 @@ export default function AdminDashboard() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
+    }
+  }
+
+  async function onTranslateMissing() {
+    setTranslating(true);
+    setTranslateMsg("");
+    setError("");
+    try {
+      const r = await translateMissingHindi();
+      setTranslateMsg(
+        r.total === 0
+          ? "All products already have a Hindi name."
+          : `Translated ${r.translated} of ${r.total}${
+              r.failed ? ` (${r.failed} could not be translated)` : ""
+            }.`
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Translation failed");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -186,11 +210,11 @@ export default function AdminDashboard() {
             className="input"
           />
         </Field>
-        <Field label="Name (Hindi) — optional">
+        <Field label="Name (Hindi) — auto-filled if left blank">
           <input
             value={form.nameHi}
             onChange={(e) => setForm({ ...form, nameHi: e.target.value })}
-            placeholder="नाम (हिंदी बिल के लिए)"
+            placeholder="स्वतः अनुवाद (या यहाँ लिखें)"
             className="input"
           />
         </Field>
@@ -255,6 +279,24 @@ export default function AdminDashboard() {
         </div>
       </form>
 
+      {/* List header with bulk-translate action */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-gray-700">Products</h2>
+        <div className="flex items-center gap-3">
+          {translateMsg && (
+            <span className="text-xs text-gray-600">{translateMsg}</span>
+          )}
+          <button
+            type="button"
+            onClick={onTranslateMissing}
+            disabled={translating}
+            className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+          >
+            {translating ? "Translating…" : "Translate missing Hindi names"}
+          </button>
+        </div>
+      </div>
+
       {/* List */}
       {loading ? (
         <p className="text-sm text-gray-500">Loading products…</p>
@@ -266,6 +308,7 @@ export default function AdminDashboard() {
             <thead className="bg-gray-50 text-left text-gray-600">
               <tr>
                 <th className="px-4 py-2 font-medium">Name</th>
+                <th className="px-4 py-2 font-medium">Name (Hindi)</th>
                 <th className="px-4 py-2 font-medium">Category</th>
                 <th className="px-4 py-2 font-medium">Price</th>
                 <th className="px-4 py-2 font-medium">Unit</th>
@@ -277,6 +320,9 @@ export default function AdminDashboard() {
                 <tr key={p._id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 font-medium text-gray-900">
                     {p.name}
+                  </td>
+                  <td className="px-4 py-2 text-gray-700">
+                    {p.nameHi || <span className="text-gray-400">—</span>}
                   </td>
                   <td className="px-4 py-2 text-gray-600">{p.category}</td>
                   <td className="px-4 py-2 text-gray-900">

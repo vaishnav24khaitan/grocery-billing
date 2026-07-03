@@ -64,6 +64,17 @@ export async function deleteProduct(id: string): Promise<void> {
   await handle<{ ok: boolean }>(res);
 }
 
+export async function translateMissingHindi(): Promise<{
+  total: number;
+  translated: number;
+  failed: number;
+}> {
+  const res = await fetch("/api/products/translate-missing", {
+    method: "POST",
+  });
+  return handle<{ total: number; translated: number; failed: number }>(res);
+}
+
 export async function adminLogin(password: string): Promise<void> {
   const res = await fetch("/api/admin/login", {
     method: "POST",

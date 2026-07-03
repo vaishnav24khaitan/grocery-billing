@@ -4,11 +4,11 @@ A simple web platform for a grocery store, built with **Next.js (App Router) + T
 
 ## Features
 
-- **Admin** (`/admin`, password protected): create, edit, and delete products with name, an optional **Hindi name** (shown on Hindi bills), price, unit, category, and optional image.
+- **Admin** (`/admin`, password protected): create, edit, and delete products with name, an optional **Hindi name** (auto-translated on save; can be overridden), price, unit, category, and optional image. A **"Translate missing Hindi names"** button backfills existing products.
 - **Billing** (`/`): billing staff sign in with their own username/password, then browse products in a grid, search / filter by category, add items with quantity to a cart, and see a running total in ₹.
 - **Checkout → Bill**: no payment step — generates a printable tax invoice with line items and grand total.
 - **Export & share**: download the bill as **PDF** or **image**, **print** it, or share it via the browser **Web Share API** (native share sheet → WhatsApp, etc.).
-- **Bilingual (English / Hindi)**: the billing screen and the printed bill can be switched between **English** and **हिंदी** using the **EN | हिं** toggle in the billing bar (and on the bill view). The choice is remembered in the browser. Product names show the admin-entered **Hindi name** when available (falling back to the English name); categories stay as entered.
+- **Bilingual (English / Hindi)**: the billing screen and the printed bill can be switched between **English** and **हिंदी** using the **EN | हिं** toggle in the billing bar (and on the bill view). The choice is remembered in the browser. Product names are **auto-translated to Hindi** when saved (via the free MyMemory API) and cached on the product, so bills render instantly with no network call; the admin can override any translation or backfill existing products with one click. Set `MYMEMORY_EMAIL` to raise the free translation quota.
 - **Billing staff accounts** (admin **Staff** tab): the admin creates/edits/disables billing-staff logins. Every sale is attributed to the staff member who created it.
 - **Sales reports** (admin): each completed checkout is recorded; the admin **Sales** tab shows today's and this month's totals, a 30-day daily and 12-month monthly breakdown, and a **per-staff breakdown** (today / this month) — all grouped in IST.
 

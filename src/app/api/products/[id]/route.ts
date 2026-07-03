@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { serializeProduct, parseProductInput } from "@/lib/products";
+import { translateToHindi } from "@/lib/translate";
 
 function isValidId(id: string): boolean {
   return mongoose.Types.ObjectId.isValid(id);
@@ -58,6 +59,11 @@ export async function PUT(
 
   try {
     await connectToDatabase();
+    // If the Hindi name was cleared/omitted but a name is present, auto-fill it.
+    if (data.name && data.nameHi !== undefined && !data.nameHi) {
+      const hi = await translateToHindi(data.name);
+      if (hi) data.nameHi = hi;
+    }
     const updated = await Product.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,

@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { serializeProduct, parseProductInput } from "@/lib/products";
+import { translateToHindi } from "@/lib/translate";
 
 // GET /api/products?search=&category=  — public product listing
 export async function GET(request: Request) {
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
 
   try {
     await connectToDatabase();
+    // Auto-fill the Hindi name if the admin didn't provide one.
+    if (!data.nameHi && data.name) {
+      const hi = await translateToHindi(data.name);
+      if (hi) data.nameHi = hi;
+    }
     const created = await Product.create(data);
     return NextResponse.json(serializeProduct(created.toObject()), {
       status: 201,
