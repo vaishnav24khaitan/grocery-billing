@@ -30,6 +30,19 @@ export interface BillLine {
 
 export const CURRENCY = "\u20B9"; // ₹
 
+export interface SalesBucket {
+  key: string;
+  total: number;
+  count: number;
+}
+
+export interface SalesSummary {
+  today: SalesBucket;
+  thisMonth: SalesBucket;
+  daily: SalesBucket[];
+  monthly: SalesBucket[];
+}
+
 export function formatCurrency(amount: number): string {
   return `${CURRENCY}${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,

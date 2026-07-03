@@ -1,4 +1,4 @@
-import type { ProductJSON } from "@/lib/types";
+import type { ProductJSON, BillLine, SalesSummary } from "@/lib/types";
 
 async function handle<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
@@ -70,4 +70,21 @@ export async function adminLogin(password: string): Promise<void> {
 export async function adminLogout(): Promise<void> {
   const res = await fetch("/api/admin/logout", { method: "POST" });
   await handle<{ ok: boolean }>(res);
+}
+
+export async function recordSale(payload: {
+  items: BillLine[];
+  total: number;
+}): Promise<{ id: string }> {
+  const res = await fetch("/api/sales", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<{ ok: boolean; id: string }>(res);
+}
+
+export async function fetchSalesSummary(): Promise<SalesSummary> {
+  const res = await fetch("/api/sales/summary", { cache: "no-store" });
+  return handle<SalesSummary>(res);
 }

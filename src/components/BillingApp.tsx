@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { fetchProducts } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchProducts, recordSale } from "@/lib/api";
 import {
   formatCurrency,
   type ProductJSON,
@@ -18,6 +18,8 @@ export default function BillingApp() {
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [showBill, setShowBill] = useState(false);
+  // Prevents recording the same (unchanged) cart as multiple sales.
+  const saleRecordedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +56,7 @@ export default function BillingApp() {
   }, [products, search, category]);
 
   function addToCart(p: ProductJSON) {
+    saleRecordedRef.current = false;
     setCart((prev) => {
       const existing = prev[p._id];
       const qty = (existing?.qty ?? 0) + 1;
@@ -62,6 +65,7 @@ export default function BillingApp() {
   }
 
   function setQty(id: string, qty: number) {
+    saleRecordedRef.current = false;
     setCart((prev) => {
       if (qty <= 0) {
         const next = { ...prev };
@@ -75,6 +79,7 @@ export default function BillingApp() {
   }
 
   function clearCart() {
+    saleRecordedRef.current = false;
     setCart({});
     setShowBill(false);
   }
@@ -95,6 +100,17 @@ export default function BillingApp() {
     () => +billLines.reduce((s, l) => s + l.lineTotal, 0).toFixed(2),
     [billLines]
   );
+
+  function handleCheckout() {
+    setShowBill(true);
+    if (!saleRecordedRef.current && billLines.length > 0) {
+      saleRecordedRef.current = true;
+      // Record the sale in the background; don't block showing the bill.
+      recordSale({ items: billLines, total }).catch(() => {
+        saleRecordedRef.current = false;
+      });
+    }
+  }
 
   if (showBill) {
     return (
@@ -250,7 +266,7 @@ export default function BillingApp() {
 
             <button
               disabled={cartItems.length === 0}
-              onClick={() => setShowBill(true)}
+              onClick={handleCheckout}
               className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               Checkout &amp; Generate Bill

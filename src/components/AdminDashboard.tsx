@@ -10,6 +10,7 @@ import {
   type ProductPayload,
 } from "@/lib/api";
 import { PRODUCT_UNITS, formatCurrency, type ProductJSON } from "@/lib/types";
+import SalesReport from "@/components/SalesReport";
 
 const EMPTY_FORM: ProductPayload = {
   name: "",
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [form, setForm] = useState<ProductPayload>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"products" | "sales">("products");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,7 +116,28 @@ export default function AdminDashboard() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
+        <div className="inline-flex rounded-md border border-gray-300 p-0.5">
+          <button
+            onClick={() => setTab("products")}
+            className={`rounded px-3 py-1.5 text-sm font-medium ${
+              tab === "products"
+                ? "bg-emerald-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Products
+          </button>
+          <button
+            onClick={() => setTab("sales")}
+            className={`rounded px-3 py-1.5 text-sm font-medium ${
+              tab === "sales"
+                ? "bg-emerald-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Sales
+          </button>
+        </div>
         <button
           onClick={onLogout}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -123,6 +146,10 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      {tab === "sales" && <SalesReport />}
+
+      {tab === "products" && (
+        <>
       {error && (
         <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -268,6 +295,8 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   );
