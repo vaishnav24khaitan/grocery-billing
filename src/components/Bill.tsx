@@ -2,23 +2,37 @@
 
 import { useMemo, useRef, useState } from "react";
 import { formatCurrency, type BillLine } from "@/lib/types";
+import { translations, type Lang } from "@/lib/i18n";
+import LanguageToggle from "@/components/LanguageToggle";
 
 const SHOP_NAME = process.env.NEXT_PUBLIC_SHOP_NAME || "Grocery Store";
 
 interface BillProps {
   lines: BillLine[];
   total: number;
+  lang: Lang;
+  onChangeLang: (lang: Lang) => void;
   onBack: () => void;
   onNewSale: () => void;
 }
 
-export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
+export default function Bill({
+  lines,
+  total,
+  lang,
+  onChangeLang,
+  onBack,
+  onNewSale,
+}: BillProps) {
   const billRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
+  const t = translations[lang];
+
+  // Capture the sale timestamp once; format it per-language at render time.
+  const now = useMemo(() => new Date(), []);
   const meta = useMemo(() => {
-    const now = new Date();
     const billNo = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(
       2,
       "0"
@@ -27,14 +41,13 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
     ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
       now.getSeconds()
     ).padStart(2, "0")}`;
-    return {
-      billNo,
-      dateStr: now.toLocaleString("en-IN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
-    };
-  }, []);
+    return { billNo };
+  }, [now]);
+
+  const dateStr = now.toLocaleString(lang === "hi" ? "hi-IN" : "en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
   async function renderCanvas(): Promise<HTMLCanvasElement> {
     const { default: html2canvas } = await import("html2canvas-pro");
@@ -52,7 +65,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch {
-      setNote("Could not generate image.");
+      setNote(t.imageError);
     } finally {
       setBusy(null);
     }
@@ -83,7 +96,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
       link.click();
       URL.revokeObjectURL(url);
     } catch {
-      setNote("Could not generate PDF.");
+      setNote(t.pdfError);
     } finally {
       setBusy(null);
     }
@@ -121,13 +134,11 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
         // No file support — share text summary only.
         await nav.share({ title: shareData.title, text: shareData.text });
       } else {
-        setNote(
-          "Sharing isn't supported on this browser. Use Download image instead."
-        );
+        setNote(t.shareUnsupported);
       }
     } catch (err) {
       if ((err as Error)?.name !== "AbortError") {
-        setNote("Sharing was cancelled or failed.");
+        setNote(t.shareFailed);
       }
     } finally {
       setBusy(null);
@@ -141,36 +152,37 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
           onClick={onBack}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
         >
-          ← Back to cart
+          {t.backToCart}
         </button>
         <div className="flex-1" />
+        <LanguageToggle lang={lang} onChange={onChangeLang} />
         <button
           onClick={() => window.print()}
           disabled={busy !== null}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
         >
-          Print
+          {t.print}
         </button>
         <button
           onClick={downloadImage}
           disabled={busy !== null}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
         >
-          {busy === "image" ? "Working…" : "Download image"}
+          {busy === "image" ? t.working : t.downloadImage}
         </button>
         <button
           onClick={downloadPdf}
           disabled={busy !== null}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
         >
-          {busy === "pdf" ? "Working…" : "Download PDF"}
+          {busy === "pdf" ? t.working : t.downloadPdf}
         </button>
         <button
           onClick={shareBill}
           disabled={busy !== null}
           className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          {busy === "share" ? "Working…" : "Share"}
+          {busy === "share" ? t.working : t.share}
         </button>
       </div>
 
@@ -188,20 +200,20 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
       >
         <div className="mb-4 text-center">
           <h1 className="text-2xl font-bold text-emerald-700">{SHOP_NAME}</h1>
-          <p className="text-xs text-gray-500">Tax Invoice</p>
+          <p className="text-xs text-gray-500">{t.taxInvoice}</p>
         </div>
         <div className="mb-4 flex justify-between text-xs text-gray-600">
-          <span>Bill No: {meta.billNo}</span>
-          <span>{meta.dateStr}</span>
+          <span>{t.billNo}: {meta.billNo}</span>
+          <span>{dateStr}</span>
         </div>
 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-300 text-left text-gray-600">
-              <th className="py-1.5">Item</th>
-              <th className="py-1.5 text-center">Qty</th>
-              <th className="py-1.5 text-right">Rate</th>
-              <th className="py-1.5 text-right">Amount</th>
+              <th className="py-1.5">{t.item}</th>
+              <th className="py-1.5 text-center">{t.qty}</th>
+              <th className="py-1.5 text-right">{t.rate}</th>
+              <th className="py-1.5 text-right">{t.amount}</th>
             </tr>
           </thead>
           <tbody>
@@ -223,7 +235,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
           <tfoot>
             <tr>
               <td colSpan={3} className="pt-3 text-right font-semibold">
-                Grand Total
+                {t.grandTotal}
               </td>
               <td className="pt-3 text-right text-lg font-bold text-emerald-700">
                 {formatCurrency(total)}
@@ -233,7 +245,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
         </table>
 
         <p className="mt-6 text-center text-xs text-gray-500">
-          Thank you for shopping with us!
+          {t.thankYou}
         </p>
       </div>
 
@@ -242,7 +254,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
           onClick={onNewSale}
           className="rounded-md border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
         >
-          Start new sale
+          {t.startNewSale}
         </button>
       </div>
     </div>

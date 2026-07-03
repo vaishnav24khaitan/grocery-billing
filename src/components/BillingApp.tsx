@@ -11,10 +11,13 @@ import {
 } from "@/lib/types";
 import Bill from "@/components/Bill";
 import StaffLogin from "@/components/StaffLogin";
+import LanguageToggle from "@/components/LanguageToggle";
+import { translations, LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
 
 export default function BillingApp() {
   const [staff, setStaff] = useState<StaffSession | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
+  const [lang, setLang] = useState<Lang>("en");
   const [products, setProducts] = useState<ProductJSON[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,6 +29,25 @@ export default function BillingApp() {
   const [checkingOut, setCheckingOut] = useState(false);
   // Prevents recording the same (unchanged) cart as multiple sales.
   const saleRecordedRef = useRef(false);
+
+  const t = translations[lang];
+
+  // Load the saved language preference once on mount (avoids SSR mismatch).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const saved = localStorage.getItem(LANG_STORAGE_KEY);
+      if (active && (saved === "en" || saved === "hi")) setLang(saved);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function changeLang(next: Lang) {
+    setLang(next);
+    localStorage.setItem(LANG_STORAGE_KEY, next);
+  }
 
   useEffect(() => {
     let active = true;
@@ -165,7 +187,7 @@ export default function BillingApp() {
   if (authChecking) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p className="text-sm text-gray-500">{t.loading}</p>
       </div>
     );
   }
@@ -179,6 +201,8 @@ export default function BillingApp() {
       <Bill
         lines={billLines}
         total={total}
+        lang={lang}
+        onChangeLang={changeLang}
         onBack={() => setShowBill(false)}
         onNewSale={clearCart}
       />
@@ -189,16 +213,19 @@ export default function BillingApp() {
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 shadow-sm">
         <span className="text-sm text-gray-600">
-          Billing as{" "}
+          {t.billingAs}{" "}
           <span className="font-semibold text-gray-900">{staff.name}</span>{" "}
           <span className="text-gray-400">(@{staff.username})</span>
         </span>
-        <button
-          onClick={onStaffLogout}
-          className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
-        >
-          Log out
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageToggle lang={lang} onChange={changeLang} />
+          <button
+            onClick={onStaffLogout}
+            className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+          >
+            {t.logout}
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Products */}
@@ -207,7 +234,7 @@ export default function BillingApp() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products…"
+              placeholder={t.searchPlaceholder}
               className="input flex-1"
             />
             <select
@@ -217,7 +244,7 @@ export default function BillingApp() {
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {c === "All" ? t.all : c}
                 </option>
               ))}
             </select>
@@ -230,9 +257,9 @@ export default function BillingApp() {
           )}
 
           {loading ? (
-            <p className="text-sm text-gray-500">Loading products…</p>
+            <p className="text-sm text-gray-500">{t.loadingProducts}</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-gray-500">No products found.</p>
+            <p className="text-sm text-gray-500">{t.noProducts}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {filtered.map((p) => (
@@ -257,7 +284,7 @@ export default function BillingApp() {
                     {p.name}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {p.category} · per {p.unit}
+                    {p.category} · {t.per} {p.unit}
                   </span>
                   <span className="mt-1 font-semibold text-emerald-700">
                     {formatCurrency(p.price)}
@@ -272,20 +299,20 @@ export default function BillingApp() {
         <aside className="lg:sticky lg:top-4 lg:self-start">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Cart</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t.cart}</h2>
               {cartItems.length > 0 && (
                 <button
                   onClick={clearCart}
                   className="text-xs text-red-600 hover:underline"
                 >
-                  Clear
+                  {t.clear}
                 </button>
               )}
             </div>
 
             {cartItems.length === 0 ? (
               <p className="text-sm text-gray-500">
-                Tap a product to add it to the cart.
+                {t.emptyCart}
               </p>
             ) : (
               <ul className="space-y-3">
@@ -333,7 +360,7 @@ export default function BillingApp() {
             )}
 
             <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3">
-              <span className="text-sm font-medium text-gray-600">Total</span>
+              <span className="text-sm font-medium text-gray-600">{t.total}</span>
               <span className="text-xl font-bold text-emerald-700">
                 {formatCurrency(total)}
               </span>
@@ -344,7 +371,7 @@ export default function BillingApp() {
               onClick={handleCheckout}
               className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {checkingOut ? "Saving…" : "Checkout & Generate Bill"}
+              {checkingOut ? t.saving : t.checkout}
             </button>
             {checkoutError && (
               <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
