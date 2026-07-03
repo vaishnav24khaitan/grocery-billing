@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grocery Store Billing App
 
-## Getting Started
+A simple web platform for a grocery store, built with **Next.js (App Router) + TypeScript + Tailwind CSS**, **MongoDB** (via Mongoose), and Next.js serverless route handlers for the backend. Deployable to **Vercel**.
 
-First, run the development server:
+## Features
+
+- **Admin** (`/admin`, password protected): create, edit, and delete products with name, price, unit, category, stock quantity, and optional image.
+- **Billing** (`/`): browse products in a grid, search / filter by category, add items with quantity to a cart, and see a running total in ₹.
+- **Checkout → Bill**: no payment step — generates a printable tax invoice with line items and grand total.
+- **Export & share**: download the bill as **PDF** or **image**, or share it via the browser **Web Share API** (native share sheet → WhatsApp, etc.).
+
+## Tech
+
+| Layer     | Choice                                   |
+| --------- | ---------------------------------------- |
+| Framework | Next.js 16 (App Router)                  |
+| Language  | TypeScript                               |
+| Styling   | Tailwind CSS v4                          |
+| Backend   | Next.js route handlers (`src/app/api`)   |
+| Database  | MongoDB + Mongoose                       |
+| Export    | html2canvas + jsPDF, Web Share API       |
+
+## Getting started (local)
+
+### 1. Prerequisites
+
+- Node.js 20+
+- A MongoDB database. The easiest option is a free **MongoDB Atlas** cluster (works both locally and on Vercel).
+
+### 2. Configure environment
+
+Copy the example env file and fill in values:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable                | Description                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `MONGODB_URI`           | MongoDB connection string (Atlas SRV string works)     |
+| `ADMIN_PASSWORD`        | Password for the `/admin` screen                       |
+| `NEXT_PUBLIC_SHOP_NAME` | Shop name shown in header and on the bill              |
+
+### 3. Install & seed
+
+```bash
+npm install
+npm run seed     # optional: inserts ~14 sample products
+```
+
+### 4. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 (billing) and http://localhost:3000/admin (admin).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/
+    api/
+      admin/login/route.ts     # POST — set admin session cookie
+      admin/logout/route.ts    # POST — clear session
+      products/route.ts        # GET list (public), POST create (admin)
+      products/[id]/route.ts   # GET, PUT (admin), DELETE (admin)
+    admin/page.tsx             # server-gated admin screen
+    page.tsx                   # billing screen
+    layout.tsx
+  components/                  # UI (SiteHeader, AdminLogin, AdminDashboard, BillingApp, Bill)
+  lib/
+    db.ts                      # serverless-safe Mongoose connection cache
+    auth.ts                    # shared-password session (HMAC cookie)
+    products.ts                # validation + serialization
+    api.ts                     # client fetch helpers
+    types.ts                   # client-safe shared types
+  models/Product.ts            # Mongoose Product model
+scripts/seed.mjs               # sample data seeder
+```
 
-## Learn More
+## Deployment (Vercel + GitHub)
 
-To learn more about Next.js, take a look at the following resources:
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for step-by-step instructions.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Admin auth is intentionally lightweight (a single shared password, no user accounts) per requirements. The session cookie is an HMAC keyed by `ADMIN_PASSWORD`, so rotating the password invalidates old sessions.
+- There is **no payment integration** by design.
+- Sharing an actual file over WhatsApp uses the browser Web Share API, which requires HTTPS (works on Vercel) and a browser that supports file sharing (most mobile browsers). On unsupported browsers the app falls back to a text share or download.
