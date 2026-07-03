@@ -145,6 +145,13 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
         </button>
         <div className="flex-1" />
         <button
+          onClick={() => window.print()}
+          disabled={busy !== null}
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+        >
+          Print
+        </button>
+        <button
           onClick={downloadImage}
           disabled={busy !== null}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
@@ -175,6 +182,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
 
       {/* Printable bill */}
       <div
+        id="printable-bill"
         ref={billRef}
         className="rounded-xl border border-gray-200 bg-white p-6 text-gray-900 shadow-sm"
       >
