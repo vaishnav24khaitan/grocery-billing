@@ -37,7 +37,7 @@ export default function Bill({ lines, total, onBack, onNewSale }: BillProps) {
   }, []);
 
   async function renderCanvas(): Promise<HTMLCanvasElement> {
-    const { default: html2canvas } = await import("html2canvas");
+    const { default: html2canvas } = await import("html2canvas-pro");
     const node = billRef.current!;
     return html2canvas(node, { scale: 2, backgroundColor: "#ffffff" });
   }
