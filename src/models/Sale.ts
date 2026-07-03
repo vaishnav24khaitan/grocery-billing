@@ -15,6 +15,10 @@ const SaleSchema = new Schema(
   {
     items: { type: [SaleItemSchema], required: true },
     total: { type: Number, required: true, min: 0 },
+    // Billing staff who created the sale (attribution for reporting).
+    staffId: { type: Schema.Types.ObjectId, ref: "Staff" },
+    staffName: { type: String },
+    staffUsername: { type: String },
   },
   { timestamps: true }
 );

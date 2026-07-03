@@ -5,10 +5,11 @@ A simple web platform for a grocery store, built with **Next.js (App Router) + T
 ## Features
 
 - **Admin** (`/admin`, password protected): create, edit, and delete products with name, price, unit, category, stock quantity, and optional image.
-- **Billing** (`/`): browse products in a grid, search / filter by category, add items with quantity to a cart, and see a running total in ₹.
+- **Billing** (`/`): billing staff sign in with their own username/password, then browse products in a grid, search / filter by category, add items with quantity to a cart, and see a running total in ₹.
 - **Checkout → Bill**: no payment step — generates a printable tax invoice with line items and grand total.
 - **Export & share**: download the bill as **PDF** or **image**, **print** it, or share it via the browser **Web Share API** (native share sheet → WhatsApp, etc.).
-- **Sales reports** (admin): each completed checkout is recorded; the admin **Sales** tab shows today's and this month's totals plus a 30-day daily and 12-month monthly breakdown (grouped in IST).
+- **Billing staff accounts** (admin **Staff** tab): the admin creates/edits/disables billing-staff logins. Every sale is attributed to the staff member who created it.
+- **Sales reports** (admin): each completed checkout is recorded; the admin **Sales** tab shows today's and this month's totals, a 30-day daily and 12-month monthly breakdown, and a **per-staff breakdown** (today / this month) — all grouped in IST.
 
 ## Tech
 
@@ -67,12 +68,17 @@ src/
       admin/logout/route.ts    # POST — clear session
       products/route.ts        # GET list (public), POST create (admin)
       products/[id]/route.ts   # GET, PUT (admin), DELETE (admin)
-      sales/route.ts           # POST — record a completed sale (public)
-      sales/summary/route.ts   # GET — daily/monthly sales report (admin)
+      sales/route.ts           # POST — record a completed sale (billing staff only)
+      sales/summary/route.ts   # GET — daily/monthly + per-staff report (admin)
+      staff/route.ts           # GET list, POST create (admin)
+      staff/[id]/route.ts      # PUT update, DELETE (admin)
+      staff/login/route.ts     # POST — billing-staff sign in
+      staff/logout/route.ts    # POST — billing-staff sign out
+      staff/me/route.ts        # GET — current billing-staff session
     admin/page.tsx             # server-gated admin screen (Products + Sales tabs)
     page.tsx                   # billing screen
     layout.tsx
-  components/                  # UI (SiteHeader, AdminLogin, AdminDashboard, SalesReport, BillingApp, Bill)
+  components/                  # UI (SiteHeader, AdminLogin, AdminDashboard, SalesReport, StaffManager, StaffLogin, BillingApp, Bill)
   lib/
     db.ts                      # serverless-safe Mongoose connection cache
     auth.ts                    # shared-password session (HMAC cookie)

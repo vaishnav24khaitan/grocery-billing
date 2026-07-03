@@ -41,6 +41,29 @@ export interface SalesSummary {
   thisMonth: SalesBucket;
   daily: SalesBucket[];
   monthly: SalesBucket[];
+  byStaffToday: StaffTotals[];
+  byStaffMonth: StaffTotals[];
+}
+
+export interface StaffJSON {
+  _id: string;
+  username: string;
+  name: string;
+  active: boolean;
+  createdAt?: string;
+}
+
+export interface StaffSession {
+  id: string;
+  username: string;
+  name: string;
+}
+
+export interface StaffTotals {
+  staffName: string;
+  staffUsername: string;
+  total: number;
+  count: number;
 }
 
 export function formatCurrency(amount: number): string {

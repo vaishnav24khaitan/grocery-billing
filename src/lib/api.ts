@@ -1,4 +1,10 @@
-import type { ProductJSON, BillLine, SalesSummary } from "@/lib/types";
+import type {
+  ProductJSON,
+  BillLine,
+  SalesSummary,
+  StaffJSON,
+  StaffSession,
+} from "@/lib/types";
 
 async function handle<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
@@ -87,4 +93,69 @@ export async function recordSale(payload: {
 export async function fetchSalesSummary(): Promise<SalesSummary> {
   const res = await fetch("/api/sales/summary", { cache: "no-store" });
   return handle<SalesSummary>(res);
+}
+
+// ---- Billing staff auth ----
+
+export async function staffLogin(
+  username: string,
+  password: string
+): Promise<StaffSession> {
+  const res = await fetch("/api/staff/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  return handle<StaffSession>(res);
+}
+
+export async function staffLogout(): Promise<void> {
+  const res = await fetch("/api/staff/logout", { method: "POST" });
+  await handle<{ ok: boolean }>(res);
+}
+
+export async function fetchStaffMe(): Promise<StaffSession | null> {
+  const res = await fetch("/api/staff/me", { cache: "no-store" });
+  const body = await handle<{ staff: StaffSession | null }>(res);
+  return body.staff;
+}
+
+// ---- Admin staff management ----
+
+export type StaffPayload = {
+  username: string;
+  name: string;
+  password?: string;
+  active?: boolean;
+};
+
+export async function fetchStaff(): Promise<StaffJSON[]> {
+  const res = await fetch("/api/staff", { cache: "no-store" });
+  return handle<StaffJSON[]>(res);
+}
+
+export async function createStaff(payload: StaffPayload): Promise<StaffJSON> {
+  const res = await fetch("/api/staff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<StaffJSON>(res);
+}
+
+export async function updateStaff(
+  id: string,
+  payload: Partial<StaffPayload>
+): Promise<StaffJSON> {
+  const res = await fetch(`/api/staff/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<StaffJSON>(res);
+}
+
+export async function deleteStaff(id: string): Promise<void> {
+  const res = await fetch(`/api/staff/${id}`, { method: "DELETE" });
+  await handle<{ ok: boolean }>(res);
 }

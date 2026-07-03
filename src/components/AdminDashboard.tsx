@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { PRODUCT_UNITS, formatCurrency, type ProductJSON } from "@/lib/types";
 import SalesReport from "@/components/SalesReport";
+import StaffManager from "@/components/StaffManager";
 
 const EMPTY_FORM: ProductPayload = {
   name: "",
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
   const [form, setForm] = useState<ProductPayload>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"products" | "sales">("products");
+  const [tab, setTab] = useState<"products" | "sales" | "staff">("products");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,6 +138,16 @@ export default function AdminDashboard() {
           >
             Sales
           </button>
+          <button
+            onClick={() => setTab("staff")}
+            className={`rounded px-3 py-1.5 text-sm font-medium ${
+              tab === "staff"
+                ? "bg-emerald-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Staff
+          </button>
         </div>
         <button
           onClick={onLogout}
@@ -147,6 +158,7 @@ export default function AdminDashboard() {
       </div>
 
       {tab === "sales" && <SalesReport />}
+      {tab === "staff" && <StaffManager />}
 
       {tab === "products" && (
         <>

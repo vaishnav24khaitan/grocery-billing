@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { fetchSalesSummary } from "@/lib/api";
-import { formatCurrency, type SalesSummary, type SalesBucket } from "@/lib/types";
+import { formatCurrency, type SalesSummary, type SalesBucket, type StaffTotals } from "@/lib/types";
 
 export default function SalesReport() {
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [view, setView] = useState<"daily" | "monthly">("daily");
+  const [staffView, setStaffView] = useState<"today" | "month">("today");
 
   useEffect(() => {
     let active = true;
@@ -39,6 +40,9 @@ export default function SalesReport() {
 
   const rows = view === "daily" ? [...summary.daily].reverse() : [...summary.monthly].reverse();
   const maxTotal = Math.max(1, ...rows.map((r) => r.total));
+
+  const staffRows: StaffTotals[] =
+    (staffView === "today" ? summary.byStaffToday : summary.byStaffMonth) ?? [];
 
   return (
     <div>
@@ -113,6 +117,71 @@ export default function SalesReport() {
           </table>
         </div>
       )}
+
+      {/* Per-staff breakdown */}
+      <div className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">Sales by staff</h3>
+          <div className="inline-flex rounded-md border border-gray-300 p-0.5">
+            <button
+              onClick={() => setStaffView("today")}
+              className={`rounded px-3 py-1 text-sm font-medium ${
+                staffView === "today"
+                  ? "bg-emerald-600 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setStaffView("month")}
+              className={`rounded px-3 py-1 text-sm font-medium ${
+                staffView === "month"
+                  ? "bg-emerald-600 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              This month
+            </button>
+          </div>
+        </div>
+
+        {staffRows.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No sales recorded by staff in this period yet.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-gray-600">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Staff</th>
+                  <th className="px-4 py-2 font-medium">Bills</th>
+                  <th className="px-4 py-2 font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {staffRows.map((s, i) => (
+                  <tr key={`${s.staffUsername}-${i}`} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium text-gray-900">
+                      {s.staffName}
+                      {s.staffUsername && (
+                        <span className="ml-1 text-xs text-gray-400">
+                          @{s.staffUsername}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-gray-600">{s.count}</td>
+                    <td className="px-4 py-2 font-semibold text-emerald-700">
+                      {formatCurrency(s.total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

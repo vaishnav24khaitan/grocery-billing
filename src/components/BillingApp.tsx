@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchProducts, recordSale } from "@/lib/api";
+import { fetchProducts, recordSale, fetchStaffMe, staffLogout } from "@/lib/api";
 import {
   formatCurrency,
   type ProductJSON,
   type CartItem,
   type BillLine,
+  type StaffSession,
 } from "@/lib/types";
 import Bill from "@/components/Bill";
+import StaffLogin from "@/components/StaffLogin";
 
 export default function BillingApp() {
+  const [staff, setStaff] = useState<StaffSession | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const [products, setProducts] = useState<ProductJSON[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,10 +22,30 @@ export default function BillingApp() {
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [showBill, setShowBill] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkingOut, setCheckingOut] = useState(false);
   // Prevents recording the same (unchanged) cart as multiple sales.
   const saleRecordedRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const me = await fetchStaffMe();
+        if (active) setStaff(me);
+      } catch {
+        if (active) setStaff(null);
+      } finally {
+        if (active) setAuthChecking(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!staff) return;
     let active = true;
     (async () => {
       try {
@@ -39,7 +63,18 @@ export default function BillingApp() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [staff]);
+
+  async function onStaffLogout() {
+    try {
+      await staffLogout();
+    } finally {
+      setStaff(null);
+      setCart({});
+      setShowBill(false);
+      saleRecordedRef.current = false;
+    }
+  }
 
   const categories = useMemo(() => {
     const set = new Set(products.map((p) => p.category).filter(Boolean));
@@ -101,15 +136,42 @@ export default function BillingApp() {
     [billLines]
   );
 
-  function handleCheckout() {
-    setShowBill(true);
-    if (!saleRecordedRef.current && billLines.length > 0) {
-      saleRecordedRef.current = true;
-      // Record the sale in the background; don't block showing the bill.
-      recordSale({ items: billLines, total }).catch(() => {
-        saleRecordedRef.current = false;
-      });
+  async function handleCheckout() {
+    if (billLines.length === 0) return;
+    setCheckoutError("");
+    // Already recorded this exact cart — just show the bill again.
+    if (saleRecordedRef.current) {
+      setShowBill(true);
+      return;
     }
+    setCheckingOut(true);
+    try {
+      await recordSale({ items: billLines, total });
+      saleRecordedRef.current = true;
+      setShowBill(true);
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to record sale";
+      setCheckoutError(msg);
+      // Session expired / invalid → force staff to sign in again.
+      if (/sign in|session/i.test(msg)) {
+        setStaff(null);
+      }
+    } finally {
+      setCheckingOut(false);
+    }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <p className="text-sm text-gray-500">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!staff) {
+    return <StaffLogin onSuccess={setStaff} />;
   }
 
   if (showBill) {
@@ -125,6 +187,19 @@ export default function BillingApp() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 shadow-sm">
+        <span className="text-sm text-gray-600">
+          Billing as{" "}
+          <span className="font-semibold text-gray-900">{staff.name}</span>{" "}
+          <span className="text-gray-400">(@{staff.username})</span>
+        </span>
+        <button
+          onClick={onStaffLogout}
+          className="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+        >
+          Log out
+        </button>
+      </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Products */}
         <section>
@@ -265,12 +340,17 @@ export default function BillingApp() {
             </div>
 
             <button
-              disabled={cartItems.length === 0}
+              disabled={cartItems.length === 0 || checkingOut}
               onClick={handleCheckout}
               className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              Checkout &amp; Generate Bill
+              {checkingOut ? "Saving…" : "Checkout & Generate Bill"}
             </button>
+            {checkoutError && (
+              <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+                {checkoutError}
+              </p>
+            )}
           </div>
         </aside>
       </div>
