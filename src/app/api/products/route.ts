@@ -58,7 +58,10 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("POST /api/products failed", err);
     return NextResponse.json(
-      { error: "Failed to create product" },
+      {
+        error: "Failed to create product",
+        detail: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 }
     );
   }
