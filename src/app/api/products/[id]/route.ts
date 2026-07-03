@@ -97,10 +97,7 @@ export async function DELETE(
   } catch (err) {
     console.error("DELETE /api/products/[id] failed", err);
     return NextResponse.json(
-      {
-        error: "Failed to delete product",
-        detail: err instanceof Error ? err.message : String(err),
-      },
+      { error: "Failed to delete product" },
       { status: 500 }
     );
   }

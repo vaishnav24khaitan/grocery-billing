@@ -32,7 +32,6 @@ export type ProductPayload = {
   price: number;
   unit: string;
   category: string;
-  quantity: number;
   imageUrl: string;
 };
 

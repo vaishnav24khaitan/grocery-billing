@@ -18,7 +18,6 @@ const EMPTY_FORM: ProductPayload = {
   price: 0,
   unit: "pcs",
   category: "General",
-  quantity: 0,
   imageUrl: "",
 };
 
@@ -73,7 +72,6 @@ export default function AdminDashboard() {
       price: p.price,
       unit: p.unit,
       category: p.category,
-      quantity: p.quantity,
       imageUrl: p.imageUrl,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -216,17 +214,6 @@ export default function AdminDashboard() {
           <input
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="input"
-          />
-        </Field>
-        <Field label="Stock quantity">
-          <input
-            type="number"
-            min={0}
-            value={form.quantity}
-            onChange={(e) =>
-              setForm({ ...form, quantity: Number(e.target.value) })
-            }
             className="input"
           />
         </Field>
