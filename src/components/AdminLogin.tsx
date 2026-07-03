@@ -43,7 +43,7 @@ export default function AdminLogin() {
           disabled={loading || !password}
           className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          {loading ? "Signing in\u2026" : "Sign in"}
+          {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
     </div>

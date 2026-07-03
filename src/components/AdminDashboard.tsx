@@ -174,7 +174,7 @@ export default function AdminDashboard() {
             className="input"
           />
         </Field>
-        <Field label="Price (\u20B9)">
+        <Field label="Price (₹)">
           <input
             required
             type="number"
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
             value={form.imageUrl}
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
             className="input"
-            placeholder="https://\u2026"
+            placeholder="https://…"
           />
         </Field>
         <div className="flex items-end gap-2 lg:col-span-3">
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
             disabled={saving}
             className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {saving ? "Saving\u2026" : editingId ? "Update product" : "Add product"}
+            {saving ? "Saving…" : editingId ? "Update product" : "Add product"}
           </button>
           {editingId && (
             <button

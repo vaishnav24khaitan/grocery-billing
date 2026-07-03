@@ -28,7 +28,7 @@ export interface BillLine {
   lineTotal: number;
 }
 
-export const CURRENCY = "\u20B9"; // ₹
+export const CURRENCY = "₹";
 
 export interface SalesBucket {
   key: string;
