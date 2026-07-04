@@ -5,7 +5,7 @@ import { formatCurrency, type BillLine } from "@/lib/types";
 import { translations, type Lang } from "@/lib/i18n";
 import LanguageToggle from "@/components/LanguageToggle";
 
-const SHOP_NAME = process.env.NEXT_PUBLIC_SHOP_NAME || "Grocery Store";
+const SHOP_NAME = "Kirana Store";
 
 interface BillProps {
   lines: BillLine[];
