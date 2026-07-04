@@ -6,6 +6,7 @@ export function serializeProduct(doc: {
   name: string;
   nameHi?: string;
   price: number;
+  priceQuantity?: number;
   unit: string;
   category: string;
   quantity: number;
@@ -18,6 +19,7 @@ export function serializeProduct(doc: {
     name: doc.name,
     nameHi: doc.nameHi ?? "",
     price: doc.price,
+    priceQuantity: doc.priceQuantity ?? 1,
     unit: doc.unit as ProductUnit,
     category: doc.category,
     quantity: doc.quantity,
@@ -31,6 +33,7 @@ export interface ProductInput {
   name: string;
   nameHi: string;
   price: number;
+  priceQuantity: number;
   unit: ProductUnit;
   category: string;
   quantity: number;
@@ -74,6 +77,13 @@ export function parseProductInput(
     data.price = price;
   } else if (!partial) {
     return { error: "price is required" };
+  }
+
+  if (has("priceQuantity")) {
+    const pq = Number(b.priceQuantity);
+    if (!Number.isFinite(pq) || pq <= 0)
+      return { error: "priceQuantity must be a number > 0" };
+    data.priceQuantity = pq;
   }
 
   if (has("unit")) {

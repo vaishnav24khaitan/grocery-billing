@@ -4,9 +4,9 @@ A simple web platform for a grocery store, built with **Next.js (App Router) + T
 
 ## Features
 
-- **Admin** (`/admin`, password protected): create, edit, and delete products with name, an optional **Hindi name** (auto-translated on save; can be overridden), price, unit, category, and optional image. A **"Translate missing Hindi names"** button backfills existing products.
-- **Billing** (`/`): billing staff sign in with their own username/password, then browse products in a grid, search / filter by category, add items with quantity to a cart, and see a running total in ₹.
-- **Checkout → Bill**: no payment step — generates a printable tax invoice with line items and grand total.
+- **Admin** (`/admin`, password protected): create, edit, and delete products with name, an optional **Hindi name** (auto-translated on save; can be overridden), price, a **pricing basis** (e.g. ₹40 for **10 g** — "Price is for (quantity)"), unit, category, and optional image. A **"Translate missing Hindi names"** button backfills existing products.
+- **Billing** (`/`): billing staff sign in with their own username/password, then browse products in a grid, search / filter by category, and add items to a cart. Each cart line supports a **decimal quantity** (e.g. 1.25 kg) and a **per-unit price override**; use **✕** to remove a line (stepping the quantity down never silently deletes it). The running total is shown in ₹.
+- **Checkout → Bill**: no payment step — generates a printable tax invoice with line items (per-unit rate) and grand total.
 - **Export & share**: download the bill as **PDF** or **image**, **print** it, or share it via the browser **Web Share API** (native share sheet → WhatsApp, etc.).
 - **Bilingual (English / Hindi)**: the billing screen and the printed bill can be switched between **English** and **हिंदी** using the **EN | हिं** toggle in the billing bar (and on the bill view). The choice is remembered in the browser. Product names are **auto-translated to Hindi** when saved (via the free MyMemory API) and cached on the product, so bills render instantly with no network call; the admin can override any translation or backfill existing products with one click. Set `MYMEMORY_EMAIL` to raise the free translation quota.
 - **Billing staff accounts** (admin **Staff** tab): the admin creates/edits/disables billing-staff logins. Every sale is attributed to the staff member who created it.

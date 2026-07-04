@@ -8,6 +8,7 @@ export interface ProductJSON {
   name: string;
   nameHi: string;
   price: number;
+  priceQuantity: number;
   unit: ProductUnit;
   category: string;
   quantity: number;
@@ -19,6 +20,9 @@ export interface ProductJSON {
 export interface CartItem {
   product: ProductJSON;
   qty: number;
+  // Effective price per single `unit` (defaults to product.price /
+  // product.priceQuantity, but can be overridden per line during billing).
+  unitPrice: number;
 }
 
 export interface BillLine {
@@ -73,4 +77,13 @@ export function formatCurrency(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+// Effective price for a single `unit` of the product.
+export function unitPriceOf(p: {
+  price: number;
+  priceQuantity: number;
+}): number {
+  const basis = p.priceQuantity > 0 ? p.priceQuantity : 1;
+  return +(p.price / basis).toFixed(4);
 }

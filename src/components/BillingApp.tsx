@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchProducts, recordSale, fetchStaffMe, staffLogout } from "@/lib/api";
 import {
   formatCurrency,
+  unitPriceOf,
   type ProductJSON,
   type CartItem,
   type BillLine,
@@ -121,21 +122,56 @@ export default function BillingApp() {
     setCart((prev) => {
       const existing = prev[p._id];
       const qty = (existing?.qty ?? 0) + 1;
-      return { ...prev, [p._id]: { product: p, qty } };
+      return {
+        ...prev,
+        [p._id]: {
+          product: p,
+          qty,
+          unitPrice: existing?.unitPrice ?? unitPriceOf(p),
+        },
+      };
     });
   }
 
+  // Set an exact quantity (supports decimals like 1.25). Does not remove the
+  // line — clamps to 0; use removeItem() to delete.
   function setQty(id: string, qty: number) {
     saleRecordedRef.current = false;
     setCart((prev) => {
-      if (qty <= 0) {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      }
       const item = prev[id];
       if (!item) return prev;
-      return { ...prev, [id]: { ...item, qty } };
+      const next = Number.isFinite(qty) && qty > 0 ? qty : 0;
+      return { ...prev, [id]: { ...item, qty: next } };
+    });
+  }
+
+  function stepQty(id: string, delta: number) {
+    setCart((prev) => {
+      const item = prev[id];
+      if (!item) return prev;
+      const next = Math.max(0, +(item.qty + delta).toFixed(3));
+      return { ...prev, [id]: { ...item, qty: next } };
+    });
+    saleRecordedRef.current = false;
+  }
+
+  // Override the per-unit price for a cart line.
+  function setUnitPrice(id: string, price: number) {
+    saleRecordedRef.current = false;
+    setCart((prev) => {
+      const item = prev[id];
+      if (!item) return prev;
+      const next = Number.isFinite(price) && price >= 0 ? price : 0;
+      return { ...prev, [id]: { ...item, unitPrice: next } };
+    });
+  }
+
+  function removeItem(id: string) {
+    saleRecordedRef.current = false;
+    setCart((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
   }
 
@@ -148,14 +184,16 @@ export default function BillingApp() {
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const billLines: BillLine[] = useMemo(
     () =>
-      cartItems.map((c) => ({
-        name: c.product.name,
-        nameHi: c.product.nameHi,
-        unit: c.product.unit,
-        unitPrice: c.product.price,
-        qty: c.qty,
-        lineTotal: +(c.product.price * c.qty).toFixed(2),
-      })),
+      cartItems
+        .filter((c) => c.qty > 0)
+        .map((c) => ({
+          name: c.product.name,
+          nameHi: c.product.nameHi,
+          unit: c.product.unit,
+          unitPrice: c.unitPrice,
+          qty: c.qty,
+          lineTotal: +(c.unitPrice * c.qty).toFixed(2),
+        })),
     [cartItems]
   );
   const total = useMemo(
@@ -293,6 +331,11 @@ export default function BillingApp() {
                   </span>
                   <span className="mt-1 font-semibold text-emerald-700">
                     {formatCurrency(p.price)}
+                    <span className="text-xs font-normal text-gray-500">
+                      {" "}
+                      / {p.priceQuantity > 1 ? `${p.priceQuantity} ` : ""}
+                      {p.unit}
+                    </span>
                   </span>
                 </button>
               ))}
@@ -320,45 +363,86 @@ export default function BillingApp() {
                 {t.emptyCart}
               </p>
             ) : (
-              <ul className="space-y-3">
-                {cartItems.map(({ product, qty }) => (
-                  <li key={product._id} className="flex items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900">
-                        {pname(product)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatCurrency(product.price)} / {product.unit}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
+              <ul className="space-y-4">
+                {cartItems.map(({ product, qty, unitPrice }) => (
+                  <li
+                    key={product._id}
+                    className="rounded-lg border border-gray-100 p-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-gray-900">
+                          {pname(product)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatCurrency(product.price)} /{" "}
+                          {product.priceQuantity > 1
+                            ? `${product.priceQuantity} `
+                            : ""}
+                          {product.unit}
+                        </p>
+                      </div>
                       <button
-                        onClick={() => setQty(product._id, qty - 1)}
-                        className="h-7 w-7 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-                        aria-label="Decrease"
+                        onClick={() => removeItem(product._id)}
+                        className="text-gray-400 hover:text-red-600"
+                        aria-label="Remove item"
+                        title="Remove"
                       >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={0}
-                        value={qty}
-                        onChange={(e) =>
-                          setQty(product._id, Number(e.target.value))
-                        }
-                        className="h-7 w-12 rounded-md border border-gray-300 text-center text-sm"
-                      />
-                      <button
-                        onClick={() => setQty(product._id, qty + 1)}
-                        className="h-7 w-7 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-                        aria-label="Increase"
-                      >
-                        +
+                        ✕
                       </button>
                     </div>
-                    <span className="w-20 text-right text-sm font-semibold text-gray-900">
-                      {formatCurrency(+(product.price * qty).toFixed(2))}
-                    </span>
+
+                    <div className="mt-2 flex items-end gap-2">
+                      {/* Quantity (supports decimals, e.g. 1.25) */}
+                      <label className="flex flex-col text-[10px] text-gray-500">
+                        {t.qty} ({product.unit})
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <button
+                            onClick={() => stepQty(product._id, -1)}
+                            className="h-7 w-6 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                            aria-label="Decrease"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={qty}
+                            onChange={(e) =>
+                              setQty(product._id, Number(e.target.value))
+                            }
+                            className="h-7 w-16 rounded-md border border-gray-300 text-center text-sm"
+                          />
+                          <button
+                            onClick={() => stepQty(product._id, 1)}
+                            className="h-7 w-6 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                            aria-label="Increase"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </label>
+
+                      {/* Per-unit price override */}
+                      <label className="flex flex-col text-[10px] text-gray-500">
+                        {t.rate} (₹/{product.unit})
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={unitPrice}
+                          onChange={(e) =>
+                            setUnitPrice(product._id, Number(e.target.value))
+                          }
+                          className="mt-0.5 h-7 w-20 rounded-md border border-gray-300 text-center text-sm"
+                        />
+                      </label>
+
+                      <span className="ml-auto pb-1 text-sm font-semibold text-gray-900">
+                        {formatCurrency(+(unitPrice * qty).toFixed(2))}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -372,7 +456,7 @@ export default function BillingApp() {
             </div>
 
             <button
-              disabled={cartItems.length === 0 || checkingOut}
+              disabled={billLines.length === 0 || checkingOut}
               onClick={handleCheckout}
               className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >

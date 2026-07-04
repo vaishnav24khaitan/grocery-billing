@@ -18,6 +18,7 @@ const EMPTY_FORM: ProductPayload = {
   name: "",
   nameHi: "",
   price: 0,
+  priceQuantity: 1,
   unit: "pcs",
   category: "General",
   imageUrl: "",
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
       name: p.name,
       nameHi: p.nameHi,
       price: p.price,
+      priceQuantity: p.priceQuantity,
       unit: p.unit,
       category: p.category,
       imageUrl: p.imageUrl,
@@ -231,6 +233,20 @@ export default function AdminDashboard() {
             className="input"
           />
         </Field>
+        <Field label={`Price is for (quantity in ${form.unit})`}>
+          <input
+            required
+            type="number"
+            min={0.001}
+            step="any"
+            value={form.priceQuantity}
+            onChange={(e) =>
+              setForm({ ...form, priceQuantity: Number(e.target.value) })
+            }
+            className="input"
+            placeholder="e.g. 10 for ₹40 per 10 g"
+          />
+        </Field>
         <Field label="Unit">
           <select
             value={form.unit}
@@ -327,6 +343,11 @@ export default function AdminDashboard() {
                   <td className="px-4 py-2 text-gray-600">{p.category}</td>
                   <td className="px-4 py-2 text-gray-900">
                     {formatCurrency(p.price)}
+                    <span className="text-gray-500">
+                      {" "}
+                      / {p.priceQuantity > 1 ? `${p.priceQuantity} ` : ""}
+                      {p.unit}
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-gray-600">{p.unit}</td>
                   <td className="px-4 py-2">

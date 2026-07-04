@@ -31,6 +31,7 @@ export type ProductPayload = {
   name: string;
   nameHi: string;
   price: number;
+  priceQuantity: number;
   unit: string;
   category: string;
   imageUrl: string;
