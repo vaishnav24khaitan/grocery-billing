@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { fetchSalesSummary } from "@/lib/api";
-import { formatCurrency, type SalesSummary, type SalesBucket, type StaffTotals } from "@/lib/types";
+import {
+  formatCurrency,
+  type SalesSummaryResponse,
+  type SalesBucket,
+  type StaffTotals,
+  type SalesSource,
+} from "@/lib/types";
 
 export default function SalesReport() {
-  const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [data, setData] = useState<SalesSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [source, setSource] = useState<SalesSource>("all");
   const [view, setView] = useState<"daily" | "monthly">("daily");
   const [staffView, setStaffView] = useState<"today" | "month">("today");
 
@@ -15,8 +22,8 @@ export default function SalesReport() {
     let active = true;
     (async () => {
       try {
-        const data = await fetchSalesSummary();
-        if (active) setSummary(data);
+        const res = await fetchSalesSummary();
+        if (active) setData(res);
       } catch (err) {
         if (active)
           setError(err instanceof Error ? err.message : "Failed to load sales");
@@ -36,7 +43,10 @@ export default function SalesReport() {
         {error}
       </p>
     );
-  if (!summary) return null;
+  if (!data) return null;
+
+  const summary =
+    source === "retail" ? data.retail : source === "bulk" ? data.bulk : data.all;
 
   const rows = view === "daily" ? [...summary.daily].reverse() : [...summary.monthly].reverse();
   const maxTotal = Math.max(1, ...rows.map((r) => r.total));
@@ -44,12 +54,70 @@ export default function SalesReport() {
   const staffRows: StaffTotals[] =
     (staffView === "today" ? summary.byStaffToday : summary.byStaffMonth) ?? [];
 
+  const SOURCES: { key: SalesSource; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "retail", label: "Retail" },
+    { key: "bulk", label: "Bulk" },
+  ];
+
   return (
     <div>
-      {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard label="Today's sales" bucket={summary.today} />
-        <StatCard label="This month's sales" bucket={summary.thisMonth} />
+      {/* Source filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-gray-600">Source:</span>
+        <div className="inline-flex rounded-md border border-gray-300 p-0.5">
+          {SOURCES.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setSource(s.key)}
+              className={`rounded px-3 py-1 text-sm font-medium ${
+                source === s.key
+                  ? "bg-emerald-600 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-gray-400">
+          Retail = billing screen · Bulk = wholesale/credit bills
+        </span>
+      </div>
+
+      {/* Retail vs Bulk split (this month) */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label={`${srcLabel(source)} — today`}
+          bucket={summary.today}
+        />
+        <StatCard
+          label={`${srcLabel(source)} — this month`}
+          bucket={summary.thisMonth}
+        />
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            This month split
+          </p>
+          <p className="mt-1 text-sm text-gray-700">
+            Retail:{" "}
+            <span className="font-semibold text-emerald-700">
+              {formatCurrency(data.retail.thisMonth.total)}
+            </span>{" "}
+            <span className="text-xs text-gray-400">
+              ({data.retail.thisMonth.count})
+            </span>
+          </p>
+          <p className="text-sm text-gray-700">
+            Bulk:{" "}
+            <span className="font-semibold text-emerald-700">
+              {formatCurrency(data.bulk.thisMonth.total)}
+            </span>{" "}
+            <span className="text-xs text-gray-400">
+              ({data.bulk.thisMonth.count})
+            </span>
+          </p>
+        </div>
       </div>
 
       {/* Toggle */}
@@ -184,6 +252,10 @@ export default function SalesReport() {
       </div>
     </div>
   );
+}
+
+function srcLabel(source: SalesSource): string {
+  return source === "retail" ? "Retail" : source === "bulk" ? "Bulk" : "All sales";
 }
 
 function StatCard({ label, bucket }: { label: string; bucket: SalesBucket }) {

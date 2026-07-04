@@ -51,6 +51,16 @@ export interface SalesSummary {
   byStaffMonth: StaffTotals[];
 }
 
+// The summary API returns the combined report at the top level (backward
+// compatible) plus a per-source breakdown.
+export interface SalesSummaryResponse extends SalesSummary {
+  retail: SalesSummary;
+  bulk: SalesSummary;
+  all: SalesSummary;
+}
+
+export type SalesSource = "all" | "retail" | "bulk";
+
 export interface StaffJSON {
   _id: string;
   username: string;

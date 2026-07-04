@@ -1,7 +1,7 @@
 import type {
   ProductJSON,
   BillLine,
-  SalesSummary,
+  SalesSummaryResponse,
   StaffJSON,
   StaffSession,
   BulkCustomerJSON,
@@ -105,9 +105,9 @@ export async function recordSale(payload: {
   return handle<{ ok: boolean; id: string }>(res);
 }
 
-export async function fetchSalesSummary(): Promise<SalesSummary> {
+export async function fetchSalesSummary(): Promise<SalesSummaryResponse> {
   const res = await fetch("/api/sales/summary", { cache: "no-store" });
-  return handle<SalesSummary>(res);
+  return handle<SalesSummaryResponse>(res);
 }
 
 // ---- Billing staff auth ----
