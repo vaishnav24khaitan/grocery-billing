@@ -221,6 +221,29 @@ export async function createBulkBill(payload: {
   }>(res);
 }
 
+export async function updateBulkBill(
+  id: string,
+  payload: { customerId?: string; items: BulkLine[]; paidNow: number }
+): Promise<{ id: string; billNo: string; total: number; paidNow: number }> {
+  const res = await fetch(`/api/bulk/bills/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<{
+    ok: boolean;
+    id: string;
+    billNo: string;
+    total: number;
+    paidNow: number;
+  }>(res);
+}
+
+export async function deleteBulkBill(id: string): Promise<void> {
+  const res = await fetch(`/api/bulk/bills/${id}`, { method: "DELETE" });
+  await handle<{ ok: boolean }>(res);
+}
+
 export async function recordBulkPayment(payload: {
   customerId: string;
   amount: number;

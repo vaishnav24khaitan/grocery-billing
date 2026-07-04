@@ -8,6 +8,8 @@ import {
   createBulkCustomer,
   fetchBulkLedger,
   createBulkBill,
+  updateBulkBill,
+  deleteBulkBill,
   recordBulkPayment,
 } from "@/lib/api";
 import {
@@ -18,6 +20,7 @@ import {
   type BulkCustomerJSON,
   type BulkLedger,
   type BulkLine,
+  type BulkBillJSON,
 } from "@/lib/types";
 import StaffLogin from "@/components/StaffLogin";
 import BulkBill from "@/components/BulkBill";
@@ -59,6 +62,13 @@ export default function BulkBillingApp() {
   const [staff, setStaff] = useState<StaffSession | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [tab, setTab] = useState<"new" | "customers">("new");
+  // A saved bill the user chose to edit (opened in the New bill form).
+  const [editBill, setEditBill] = useState<BulkBillJSON | null>(null);
+
+  function startEdit(bill: BulkBillJSON) {
+    setEditBill(bill);
+    setTab("new");
+  }
 
   useEffect(() => {
     let active = true;
@@ -130,14 +140,27 @@ export default function BulkBillingApp() {
         ))}
       </div>
 
-      {tab === "new" ? <NewBill /> : <Customers />}
+      {tab === "new" ? (
+        <NewBill
+          editBill={editBill}
+          onEditConsumed={() => setEditBill(null)}
+        />
+      ) : (
+        <Customers onEditBill={startEdit} />
+      )}
     </div>
   );
 }
 
 /* ------------------------------- New bill ------------------------------- */
 
-function NewBill() {
+function NewBill({
+  editBill,
+  onEditConsumed,
+}: {
+  editBill: BulkBillJSON | null;
+  onEditConsumed: () => void;
+}) {
   const [customers, setCustomers] = useState<BulkCustomerJSON[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
@@ -148,6 +171,9 @@ function NewBill() {
   const [paidNow, setPaidNow] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // When set, we are editing this saved bill instead of creating a new one.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingBillNo, setEditingBillNo] = useState<string>("");
   const [receipt, setReceipt] = useState<{
     billNo: string;
     dateStr: string;
@@ -174,6 +200,42 @@ function NewBill() {
       await loadCustomers();
     })();
   }, []);
+
+  // Load a bill chosen for editing into the form, then clear it from the parent.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!editBill) return;
+    setCustomerId(editBill.customerId);
+    setEditingId(editBill._id);
+    setEditingBillNo(editBill.billNo);
+    setLines(
+      editBill.items.length > 0
+        ? editBill.items.map((it) => ({
+            id: Math.random().toString(36).slice(2),
+            name: it.name,
+            unit: it.unit,
+            qty: String(it.qty),
+            price: String(it.price),
+            mrp: it.mrp != null ? String(it.mrp) : "",
+          }))
+        : [newLine()]
+    );
+    setPaidNow(editBill.paidNow ? String(editBill.paidNow) : "");
+    setReceipt(null);
+    setError("");
+    onEditConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editBill]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function resetForm() {
+    setEditingId(null);
+    setEditingBillNo("");
+    setLines([newLine()]);
+    setPaidNow("");
+    setReceipt(null);
+    setError("");
+  }
 
   const selected = customers.find((c) => c._id === customerId) || null;
 
@@ -240,6 +302,46 @@ function NewBill() {
       dateStyle: "medium",
       timeStyle: "short",
     });
+
+    // Editing an existing saved bill.
+    if (editingId) {
+      if (items.length === 0) {
+        setError("A bill must have at least one item");
+        return;
+      }
+      setSaving(true);
+      try {
+        const res = await updateBulkBill(editingId, {
+          customerId,
+          items,
+          paidNow: paidAmt,
+        });
+        const list = await fetchBulkCustomers();
+        setCustomers(list);
+        const updated = list.find((c) => c._id === customerId);
+        const newBal = updated?.balance ?? prevBal;
+        setReceipt({
+          billNo: res.billNo,
+          dateStr: nowStr,
+          customerName: custName,
+          items,
+          total: res.total,
+          paidNow: res.paidNow,
+          prevBalance: +(newBal - res.total + res.paidNow).toFixed(2),
+          newBalance: newBal,
+          paymentOnly: false,
+        });
+        setEditingId(null);
+        setEditingBillNo("");
+        setLines([newLine()]);
+        setPaidNow("");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to update bill");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
 
     // No items but money received → record a payment only (no bill).
     if (items.length === 0) {
@@ -326,8 +428,7 @@ function NewBill() {
         newBalance={receipt.newBalance}
         paymentOnly={receipt.paymentOnly}
         onNewBill={() => {
-          setReceipt(null);
-          setError("");
+          resetForm();
         }}
       />
     );
@@ -336,6 +437,20 @@ function NewBill() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-4">
+        {editingId && (
+          <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm">
+            <span className="font-medium text-amber-800">
+              Editing saved bill {editingBillNo}
+            </span>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-md border border-amber-400 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+            >
+              Cancel edit
+            </button>
+          </div>
+        )}
         {/* Customer picker */}
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -564,11 +679,13 @@ function NewBill() {
           >
             {saving
               ? "Saving…"
-              : paymentOnly
-                ? "Record payment (no bill)"
-                : "Create bill"}
+              : editingId
+                ? "Update bill"
+                : paymentOnly
+                  ? "Record payment (no bill)"
+                  : "Create bill"}
           </button>
-          {paymentOnly && (
+          {paymentOnly && !editingId && (
             <p className="mt-2 text-xs text-gray-500">
               No items added — this will only record the received amount against
               the customer&apos;s balance.
@@ -582,7 +699,11 @@ function NewBill() {
 
 /* ------------------------- Customers & ledger --------------------------- */
 
-function Customers() {
+function Customers({
+  onEditBill,
+}: {
+  onEditBill: (bill: BulkBillJSON) => void;
+}) {
   const [customers, setCustomers] = useState<BulkCustomerJSON[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -653,7 +774,11 @@ function Customers() {
           </button>
 
           {openId === c._id && (
-            <Ledger customerId={c._id} onChanged={load} />
+            <Ledger
+              customerId={c._id}
+              onChanged={load}
+              onEditBill={onEditBill}
+            />
           )}
         </div>
       ))}
@@ -664,15 +789,18 @@ function Customers() {
 function Ledger({
   customerId,
   onChanged,
+  onEditBill,
 }: {
   customerId: string;
   onChanged: () => void;
+  onEditBill: (bill: BulkBillJSON) => void;
 }) {
   const [ledger, setLedger] = useState<BulkLedger | null>(null);
   const [error, setError] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [depositNote, setDepositNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -712,6 +840,27 @@ function Ledger({
       setError(err instanceof Error ? err.message : "Failed to record deposit");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onDelete(billId: string) {
+    if (
+      !window.confirm(
+        "Delete this bill? This also removes its 'paid at billing' amount and updates the balance. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+    setDeletingId(billId);
+    setError("");
+    try {
+      await deleteBulkBill(billId);
+      await load();
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete bill");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -792,13 +941,30 @@ function Ledger({
         {ledger.bills.map((b) => (
           <div
             key={b._id}
-            className="flex items-center justify-between rounded-md bg-red-50 px-3 py-1.5"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-red-50 px-3 py-1.5"
           >
             <span className="text-gray-700">
               {fmtDate(b.createdAt)} · Bill {b.billNo} ({b.items.length} items)
             </span>
-            <span className="font-medium text-red-700">
-              + {formatCurrency(b.total)}
+            <span className="flex items-center gap-2">
+              <span className="font-medium text-red-700">
+                + {formatCurrency(b.total)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onEditBill(b)}
+                className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(b._id)}
+                disabled={deletingId === b._id}
+                className="rounded border border-red-300 bg-white px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                {deletingId === b._id ? "Deleting…" : "Delete"}
+              </button>
             </span>
           </div>
         ))}
