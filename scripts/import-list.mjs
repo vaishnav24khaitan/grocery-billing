@@ -485,8 +485,8 @@ const CATALOG = [
 ];
 
 async function main() {
-  await mongoose.connect(MONGODB_URI);
-  console.log("Connected.");
+  await mongoose.connect(MONGODB_URI, { dbName: process.env.SEED_DB || undefined });
+  console.log(`Connected to DB: ${mongoose.connection.name}`);
 
   const desired = [];
   for (const group of CATALOG) {

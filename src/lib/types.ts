@@ -72,6 +72,62 @@ export interface StaffTotals {
   count: number;
 }
 
+// ---- Bulk billing ----
+
+export interface BulkCustomerJSON {
+  _id: string;
+  name: string;
+  phone: string;
+  address: string;
+  createdAt?: string;
+  // Derived (present on list/ledger responses):
+  balance?: number;
+  totalBilled?: number;
+  totalPaid?: number;
+  lastActivityAt?: string;
+}
+
+export interface BulkLine {
+  name: string;
+  unit: ProductUnit;
+  qty: number;
+  // Price charged per single `unit`.
+  price: number;
+  // Optional actual/market price per unit, for showing a discount.
+  mrp?: number;
+  lineTotal: number;
+}
+
+export interface BulkBillJSON {
+  _id: string;
+  customerId: string;
+  customerName: string;
+  billNo: string;
+  items: BulkLine[];
+  total: number;
+  paidNow: number;
+  staffName?: string;
+  createdAt?: string;
+}
+
+export interface BulkPaymentJSON {
+  _id: string;
+  customerId: string;
+  amount: number;
+  note: string;
+  staffName?: string;
+  createdAt?: string;
+}
+
+export interface BulkLedger {
+  customer: BulkCustomerJSON;
+  bills: BulkBillJSON[];
+  payments: BulkPaymentJSON[];
+  totalBilled: number;
+  totalPaid: number;
+  balance: number;
+}
+
 export function formatCurrency(amount: number): string {
   return `${CURRENCY}${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,

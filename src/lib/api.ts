@@ -4,6 +4,9 @@ import type {
   SalesSummary,
   StaffJSON,
   StaffSession,
+  BulkCustomerJSON,
+  BulkLedger,
+  BulkLine,
 } from "@/lib/types";
 
 async function handle<T>(res: Response): Promise<T> {
@@ -170,4 +173,63 @@ export async function updateStaff(
 export async function deleteStaff(id: string): Promise<void> {
   const res = await fetch(`/api/staff/${id}`, { method: "DELETE" });
   await handle<{ ok: boolean }>(res);
+}
+
+// ---- Bulk billing ----
+
+export async function fetchBulkCustomers(): Promise<BulkCustomerJSON[]> {
+  const res = await fetch("/api/bulk/customers", { cache: "no-store" });
+  return handle<BulkCustomerJSON[]>(res);
+}
+
+export async function createBulkCustomer(payload: {
+  name: string;
+  phone?: string;
+  address?: string;
+}): Promise<BulkCustomerJSON> {
+  const res = await fetch("/api/bulk/customers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<BulkCustomerJSON>(res);
+}
+
+export async function fetchBulkLedger(customerId: string): Promise<BulkLedger> {
+  const res = await fetch(`/api/bulk/customers/${customerId}`, {
+    cache: "no-store",
+  });
+  return handle<BulkLedger>(res);
+}
+
+export async function createBulkBill(payload: {
+  customerId: string;
+  items: BulkLine[];
+  paidNow: number;
+}): Promise<{ id: string; billNo: string; total: number; paidNow: number }> {
+  const res = await fetch("/api/bulk/bills", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<{
+    ok: boolean;
+    id: string;
+    billNo: string;
+    total: number;
+    paidNow: number;
+  }>(res);
+}
+
+export async function recordBulkPayment(payload: {
+  customerId: string;
+  amount: number;
+  note?: string;
+}): Promise<{ id: string }> {
+  const res = await fetch("/api/bulk/payments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handle<{ ok: boolean; id: string }>(res);
 }
