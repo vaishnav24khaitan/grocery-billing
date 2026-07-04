@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { PRODUCT_UNITS, formatCurrency, type ProductJSON } from "@/lib/types";
 import SalesReport from "@/components/SalesReport";
+import BillsList from "@/components/BillsList";
 import StaffManager from "@/components/StaffManager";
 
 type ProductForm = Omit<ProductPayload, "price" | "priceQuantity"> & {
@@ -36,7 +37,9 @@ export default function AdminDashboard() {
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"products" | "sales" | "staff">("products");
+  const [tab, setTab] = useState<"products" | "sales" | "bills" | "staff">(
+    "products"
+  );
   const [translating, setTranslating] = useState(false);
   const [translateMsg, setTranslateMsg] = useState("");
 
@@ -175,6 +178,16 @@ export default function AdminDashboard() {
             Sales
           </button>
           <button
+            onClick={() => setTab("bills")}
+            className={`rounded px-3 py-1.5 text-sm font-medium ${
+              tab === "bills"
+                ? "bg-emerald-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Bills
+          </button>
+          <button
             onClick={() => setTab("staff")}
             className={`rounded px-3 py-1.5 text-sm font-medium ${
               tab === "staff"
@@ -194,6 +207,7 @@ export default function AdminDashboard() {
       </div>
 
       {tab === "sales" && <SalesReport />}
+      {tab === "bills" && <BillsList />}
       {tab === "staff" && <StaffManager />}
 
       {tab === "products" && (

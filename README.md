@@ -12,6 +12,7 @@ A simple web platform for a grocery store, built with **Next.js (App Router) + T
 - **Billing staff accounts** (admin **Staff** tab): the admin creates/edits/disables billing-staff logins. Every sale is attributed to the staff member who created it.
 - **Bulk billing** (`/bulk`, billing-staff only): a separate mode for wholesale/credit customers. Pick or create a customer, add **free-form line items** (item name, unit, quantity, per-unit price, and an optional **MRP** to show a discount), record how much was **received now**, and create the bill. If you enter only an amount received (no items), it records a **payment-only** entry. After any bill or payment a **printable / shareable receipt** is shown (Print, Download image, Download PDF, Share). Each customer keeps a running **ledger**: total billed, total received, and the **outstanding balance** (carried from previous bills, with dates). You can **record a deposit** any time money is received, and **edit or delete** any saved bill from the ledger — deleting/editing keeps the linked "paid at billing" amount and the balance in sync. Kept separate from the retail cash **Sales** report.
 - **Sales reports** (admin): each completed checkout is recorded; the admin **Sales** tab shows today's and this month's totals, a 30-day daily and 12-month monthly breakdown, and a **per-staff breakdown** (today / this month) — all grouped in IST. A **source filter** (All / Retail / Bulk) lets you distinguish retail (billing screen) sales from bulk (wholesale/credit) bills, and a "this month split" card shows both side by side. Bulk totals reflect billed value.
+- **All bills** (admin **Bills** tab): a paginated list of every generated bill — both retail and bulk — with date, bill number, type badge, customer/staff, item count, and total. Filter by source (All / Retail / Bulk) and click **View / Print** on any bill to reopen its receipt and Print, Download image, Download PDF, or Share it.
 
 ## Tech
 
@@ -71,6 +72,7 @@ src/
       products/route.ts        # GET list (public), POST create (admin)
       products/[id]/route.ts   # GET, PUT (admin), DELETE (admin)
       sales/route.ts           # POST — record a completed sale (billing staff only)
+      sales/bills/route.ts     # GET — paginated list of all bills, retail+bulk (admin)
       sales/summary/route.ts   # GET — daily/monthly + per-staff report (admin)
       staff/route.ts           # GET list, POST create (admin)
       staff/[id]/route.ts      # PUT update, DELETE (admin)
@@ -80,7 +82,7 @@ src/
     admin/page.tsx             # server-gated admin screen (Products + Sales tabs)
     page.tsx                   # billing screen
     layout.tsx
-  components/                  # UI (SiteHeader, AdminLogin, AdminDashboard, SalesReport, StaffManager, StaffLogin, BillingApp, Bill)
+  components/                  # UI (SiteHeader, AdminLogin, AdminDashboard, SalesReport, BillsList, ReceiptView, StaffManager, StaffLogin, BillingApp, Bill)
   lib/
     db.ts                      # serverless-safe Mongoose connection cache
     auth.ts                    # shared-password session (HMAC cookie)

@@ -2,6 +2,7 @@ import type {
   ProductJSON,
   BillLine,
   SalesSummaryResponse,
+  BillsResponse,
   StaffJSON,
   StaffSession,
   BulkCustomerJSON,
@@ -108,6 +109,22 @@ export async function recordSale(payload: {
 export async function fetchSalesSummary(): Promise<SalesSummaryResponse> {
   const res = await fetch("/api/sales/summary", { cache: "no-store" });
   return handle<SalesSummaryResponse>(res);
+}
+
+export async function fetchBills(
+  source: "all" | "retail" | "bulk" = "all",
+  page = 1,
+  pageSize = 25
+): Promise<BillsResponse> {
+  const params = new URLSearchParams({
+    source,
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const res = await fetch(`/api/sales/bills?${params.toString()}`, {
+    cache: "no-store",
+  });
+  return handle<BillsResponse>(res);
 }
 
 // ---- Billing staff auth ----

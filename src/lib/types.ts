@@ -61,6 +61,41 @@ export interface SalesSummaryResponse extends SalesSummary {
 
 export type SalesSource = "all" | "retail" | "bulk";
 
+// A single line item on a bill (unified across retail & bulk).
+export interface BillRecordItem {
+  name: string;
+  unit: string;
+  qty: number;
+  // Price per single `unit`.
+  rate: number;
+  // Optional MRP per unit (bulk only), for showing a discount.
+  mrp?: number;
+  lineTotal: number;
+}
+
+// A single generated bill, normalized across retail (Sale) and bulk (BulkBill).
+export interface BillRecord {
+  id: string;
+  source: "retail" | "bulk";
+  billNo: string;
+  date: string;
+  total: number;
+  items: BillRecordItem[];
+  staffName?: string;
+  staffUsername?: string;
+  // Bulk-only fields:
+  customerName?: string;
+  paidNow?: number;
+}
+
+export interface BillsResponse {
+  bills: BillRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
 export interface StaffJSON {
   _id: string;
   username: string;
