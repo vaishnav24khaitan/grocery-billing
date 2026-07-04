@@ -20,6 +20,7 @@ import {
   type BulkLine,
 } from "@/lib/types";
 import StaffLogin from "@/components/StaffLogin";
+import BulkBill from "@/components/BulkBill";
 
 // A line while it is being edited (numbers kept as strings so fields can be
 // blank instead of showing a default 0).
@@ -147,10 +148,16 @@ function NewBill() {
   const [paidNow, setPaidNow] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<{
+  const [receipt, setReceipt] = useState<{
     billNo: string;
+    dateStr: string;
+    customerName: string;
+    items: BulkLine[];
     total: number;
     paidNow: number;
+    prevBalance: number;
+    newBalance: number;
+    paymentOnly: boolean;
   } | null>(null);
 
   async function loadCustomers() {
@@ -207,7 +214,7 @@ function NewBill() {
 
   async function onSave() {
     setError("");
-    setDone(null);
+    setReceipt(null);
     if (!customerId) {
       setError("Please select or create a customer first");
       return;
@@ -226,18 +233,70 @@ function NewBill() {
           lineTotal: +(qty * price).toFixed(2),
         };
       });
+    const paidAmt = Number(paidNow) || 0;
+    const custName = selected?.name ?? "Customer";
+    const prevBal = selected?.balance ?? 0;
+    const nowStr = new Date().toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+    // No items but money received → record a payment only (no bill).
     if (items.length === 0) {
-      setError("Add at least one line with a name and quantity");
+      if (paidAmt <= 0) {
+        setError(
+          "Add at least one item, or enter an amount received to record a payment only"
+        );
+        return;
+      }
+      setSaving(true);
+      try {
+        const res = await recordBulkPayment({
+          customerId,
+          amount: paidAmt,
+          note: "Payment received",
+        });
+        setReceipt({
+          billNo: `PAY-${String(res.id).slice(-6).toUpperCase()}`,
+          dateStr: nowStr,
+          customerName: custName,
+          items: [],
+          total: 0,
+          paidNow: paidAmt,
+          prevBalance: prevBal,
+          newBalance: +(prevBal - paidAmt).toFixed(2),
+          paymentOnly: true,
+        });
+        setPaidNow("");
+        await loadCustomers();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to record payment"
+        );
+      } finally {
+        setSaving(false);
+      }
       return;
     }
+
     setSaving(true);
     try {
       const res = await createBulkBill({
         customerId,
         items,
-        paidNow: Number(paidNow) || 0,
+        paidNow: paidAmt,
       });
-      setDone({ billNo: res.billNo, total: res.total, paidNow: res.paidNow });
+      setReceipt({
+        billNo: res.billNo,
+        dateStr: nowStr,
+        customerName: custName,
+        items,
+        total: res.total,
+        paidNow: res.paidNow,
+        prevBalance: prevBal,
+        newBalance: +(prevBal + res.total - res.paidNow).toFixed(2),
+        paymentOnly: false,
+      });
       setLines([newLine()]);
       setPaidNow("");
       await loadCustomers();
@@ -248,8 +307,31 @@ function NewBill() {
     }
   }
 
+  const hasItems = lines.some((l) => l.name.trim() && Number(l.qty) > 0);
+  const paymentOnly = !hasItems && (Number(paidNow) || 0) > 0;
+
   const prevBalance = selected?.balance ?? 0;
   const newBalance = +(prevBalance + total - (Number(paidNow) || 0)).toFixed(2);
+
+  if (receipt) {
+    return (
+      <BulkBill
+        billNo={receipt.billNo}
+        dateStr={receipt.dateStr}
+        customerName={receipt.customerName}
+        items={receipt.items}
+        total={receipt.total}
+        paidNow={receipt.paidNow}
+        prevBalance={receipt.prevBalance}
+        newBalance={receipt.newBalance}
+        paymentOnly={receipt.paymentOnly}
+        onNewBill={() => {
+          setReceipt(null);
+          setError("");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -480,21 +562,19 @@ function NewBill() {
             disabled={saving}
             className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Create bill"}
+            {saving
+              ? "Saving…"
+              : paymentOnly
+                ? "Record payment (no bill)"
+                : "Create bill"}
           </button>
+          {paymentOnly && (
+            <p className="mt-2 text-xs text-gray-500">
+              No items added — this will only record the received amount against
+              the customer&apos;s balance.
+            </p>
+          )}
         </div>
-
-        {done && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
-            <p className="font-semibold text-emerald-800">
-              Bill {done.billNo} created
-            </p>
-            <p className="mt-1 text-emerald-700">
-              Total {formatCurrency(done.total)} · Received{" "}
-              {formatCurrency(done.paidNow)}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
