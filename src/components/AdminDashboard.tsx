@@ -14,11 +14,16 @@ import { PRODUCT_UNITS, formatCurrency, type ProductJSON } from "@/lib/types";
 import SalesReport from "@/components/SalesReport";
 import StaffManager from "@/components/StaffManager";
 
-const EMPTY_FORM: ProductPayload = {
+type ProductForm = Omit<ProductPayload, "price" | "priceQuantity"> & {
+  price: string;
+  priceQuantity: string;
+};
+
+const EMPTY_FORM: ProductForm = {
   name: "",
   nameHi: "",
-  price: 0,
-  priceQuantity: 1,
+  price: "",
+  priceQuantity: "",
   unit: "pcs",
   category: "General",
   imageUrl: "",
@@ -28,7 +33,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<ProductJSON[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<ProductPayload>(EMPTY_FORM);
+  const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"products" | "sales" | "staff">("products");
@@ -75,8 +80,8 @@ export default function AdminDashboard() {
     setForm({
       name: p.name,
       nameHi: p.nameHi,
-      price: p.price,
-      priceQuantity: p.priceQuantity,
+      price: String(p.price),
+      priceQuantity: String(p.priceQuantity),
       unit: p.unit,
       category: p.category,
       imageUrl: p.imageUrl,
@@ -89,10 +94,15 @@ export default function AdminDashboard() {
     setSaving(true);
     setError("");
     try {
+      const payload: ProductPayload = {
+        ...form,
+        price: Number(form.price),
+        priceQuantity: Number(form.priceQuantity) || 1,
+      };
       if (editingId) {
-        await updateProduct(editingId, form);
+        await updateProduct(editingId, payload);
       } else {
-        await createProduct(form);
+        await createProduct(payload);
       }
       resetForm();
       await load();
@@ -228,9 +238,10 @@ export default function AdminDashboard() {
             step="0.01"
             value={form.price}
             onChange={(e) =>
-              setForm({ ...form, price: Number(e.target.value) })
+              setForm({ ...form, price: e.target.value })
             }
             className="input"
+            placeholder="e.g. 40"
           />
         </Field>
         <Field label={`Price is for (quantity in ${form.unit})`}>
@@ -241,7 +252,7 @@ export default function AdminDashboard() {
             step="any"
             value={form.priceQuantity}
             onChange={(e) =>
-              setForm({ ...form, priceQuantity: Number(e.target.value) })
+              setForm({ ...form, priceQuantity: e.target.value })
             }
             className="input"
             placeholder="e.g. 10 for ₹40 per 10 g"

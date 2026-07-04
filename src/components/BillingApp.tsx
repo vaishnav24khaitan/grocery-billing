@@ -408,7 +408,8 @@ export default function BillingApp() {
                             type="number"
                             min={0}
                             step="any"
-                            value={qty}
+                            value={qty === 0 ? "" : qty}
+                            placeholder="0"
                             onChange={(e) =>
                               setQty(product._id, Number(e.target.value))
                             }
@@ -431,7 +432,8 @@ export default function BillingApp() {
                           type="number"
                           min={0}
                           step="0.01"
-                          value={unitPrice}
+                          value={unitPrice === 0 ? "" : unitPrice}
+                          placeholder="0"
                           onChange={(e) =>
                             setUnitPrice(product._id, Number(e.target.value))
                           }
